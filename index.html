@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ConfidenceVR — Virtual Social Anxiety Training</title>
+  
+  <!-- A-Frame VR Framework (v1.5.0) -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-panel: rgba(15, 23, 42, 0.88);
+      --bg-panel-border: rgba(148, 163, 184, 0.22);
+      --primary: #38bdf8;
+      --primary-hover: #0284c7;
+      --secondary: #818cf8;
+      --accent: #34d399;
+      --accent-warm: #fbbf24;
+      --danger: #f87171;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --font-main: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-dark);
+      font-family: var(--font-main);
+      color: var(--text-main);
+    }
+
+    #vr-scene-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    #ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .interactive {
+      pointer-events: auto;
+    }
+
+    .glass-panel {
+      background: var(--bg-panel);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--bg-panel-border);
+      border-radius: var(--radius-md);
+      color: var(--text-main);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 22px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      border: none;
+      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #0369a1, #0284c7);
+      box-shadow: 0 6px 18px rgba(56, 189, 248, 0.5);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #059669, #34d399);
+      border: none;
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #dc2626, #f87171);
+      border: none;
+    }
+
+    .btn-sm {
+      padding: 7px 14px;
+      font-size: 13px;
+    }
+
+    #top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 24px;
+      background: linear-gradient(to bottom, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.1));
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-badge {
+      font-size: 11px;
+      font-weight: 500;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--primary);
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .top-stats {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .stat-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-content {
+      width: 90%;
+      max-width: 680px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      border-radius: var(--radius-lg);
+    }
+
+    .onboarding-steps {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .step-dot {
+      flex: 1;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 2px;
+      transition: background 0.3s;
+    }
+
+    .step-dot.active {
+      background: var(--primary);
+    }
+
+    .option-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .option-card {
+      padding: 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .option-card:hover {
+      background: rgba(56, 189, 248, 0.08);
+      border-color: var(--primary);
+    }
+
+    .option-card.selected {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: var(--primary);
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.3);
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: var(--radius-sm);
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-field:focus {
+      border-color: var(--primary);
+    }
+
+    #hud-bottom {
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(to top, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0));
+    }
+
+    #conversation-container {
+      width: 100%;
+      max-width: 820px;
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .dialogue-box {
+      padding: 18px 22px;
+      border-radius: var(--radius-md);
+      position: relative;
+    }
+
+    .dialogue-speaker {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--primary);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dialogue-text {
+      font-size: 17px;
+      line-height: 1.5;
+    }
+
+    .mic-button {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px solid var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 22px;
+      transition: all 0.25s;
+    }
+
+    .mic-button.recording {
+      background: var(--danger);
+      border-color: #fca5a5;
+      animation: pulse 1.4s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.6); }
+      70% { transform: scale(1.08); box-shadow: 0 0 0 14px rgba(248, 113, 113, 0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(248, 113, 113, 0); }
+    }
+
+    .quick-replies {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .quick-chip {
+      padding: 8px 14px;
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s;
+    }
+
+    .quick-chip:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--primary);
+    }
+
+    #desktop-guide {
+      position: absolute;
+      bottom: 14px;
+      left: 18px;
+      padding: 8px 14px;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    .key-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      color: #fff;
+      font-family: monospace;
+      font-weight: 700;
+    }
+
+    #breathing-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.92);
+      z-index: 150;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+    }
+
+    .breath-circle {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #38bdf8 0%, rgba(56, 189, 248, 0.15) 70%);
+      box-shadow: 0 0 35px rgba(56, 189, 248, 0.4);
+      animation: breathAnim 8s infinite ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    @keyframes breathAnim {
+      0%, 100% { transform: scale(0.8); opacity: 0.6; }
+      50% { transform: scale(1.35); opacity: 1; box-shadow: 0 0 55px rgba(56, 189, 248, 0.8); }
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #38bdf8, #818cf8);
+      border-radius: 5px;
+      transition: width 0.6s ease;
+    }
+
+    #toast-notification {
+      position: absolute;
+      top: 75px;
+      right: 24px;
+      padding: 14px 20px;
+      border-radius: var(--radius-sm);
+      background: rgba(15, 23, 42, 0.95);
+      border-left: 4px solid var(--primary);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      z-index: 200;
+      transform: translateX(120%);
+      transition: transform 0.3s ease;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #toast-notification.show {
+      transform: translateX(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 3D WEBRX SCENE -->
+  <div id="vr-scene-container">
+    <a-scene embedded vr-mode-ui="enabled: true" renderer="antialias: true; colorManagement: true;">
+      <a-assets>
+        <audio id="sound-chime" src="https://cdn.aframe.io/basic-guide/audio/tink.mp3" preload="auto"></audio>
+      </a-assets>
+
+      <!-- Camera Rig with Quest 3S Controllers and Desktop WASD -->
+      <a-entity id="rig" position="0 0 0">
+        <a-camera id="camera" position="0 1.6 0" look-controls="pointerLockEnabled: false" wasd-controls="acceleration: 20">
+          <a-cursor id="mouse-cursor" color="#38bdf8" fuse="false" raycaster="objects: .clickable; far: 20; interval: 100" position="0 0 -1" geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.018"></a-cursor>
+        </a-camera>
+        <a-entity id="leftHand" laser-controls="hand: left" oculus-touch-controls="hand: left" raycaster="objects: .clickable; far: 25; showLine: true; lineColor: #818cf8;"></a-entity>
+        <a-entity id="rightHand" laser-controls="hand: right" oculus-touch-controls="hand: right" raycaster="objects: .clickable; far: 25; showLine: true; lineColor: #38bdf8;"></a-entity>
+      </a-entity>
+
+      <a-entity id="ambient-light" light="type: ambient; color: #cbd5e1; intensity: 0.65;"></a-entity>
+      <a-entity id="dir-light" light="type: directional; color: #f8fafc; intensity: 0.8; castShadow: true;" position="-3 6 4"></a-entity>
+      <a-sky id="sky-dome" color="#090d16"></a-sky>
+
+      <!-- 1. CONFIDENCE HUB -->
+      <a-entity id="env-hub" class="env-group">
+        <a-cylinder position="0 -0.05 0" radius="16" height="0.1" color="#1e293b" roughness="0.6" metalness="0.2"></a-cylinder>
+        <a-cylinder position="0 0.01 0" radius="3" height="0.02" color="#0f172a" roughness="0.8"></a-cylinder>
+        <a-ring position="0 0.02 0" rotation="-90 0 0" radius-inner="2.7" radius-outer="2.9" color="#38bdf8"></a-ring>
+        <a-cylinder position="-7 4 -7" radius="0.4" height="8" color="#334155"></a-cylinder>
+        <a-cylinder position="7 4 -7" radius="0.4" height="8" color="#334155"></a-cylinder>
+        <a-cylinder position="-7 4 7" radius="0.4" height="8" color="#334155"></a-cylinder>
+        <a-cylinder position="7 4 7" radius="0.4" height="8" color="#334155"></a-cylinder>
+        <a-plane position="0 8 0" rotation="90 0 0" width="18" height="18" color="#0f172a" opacity="0.65"></a-plane>
+
+        <a-entity position="0 3.8 -4.5">
+          <a-text value="CONFIDENCE VR HUB" align="center" color="#38bdf8" width="8" font="kelsonsans"></a-text>
+          <a-text value="Select a practice module to begin" align="center" color="#94a3b8" width="4.5" position="0 -0.45 0"></a-text>
+        </a-entity>
+
+        <!-- Portal Pods -->
+        <a-entity position="-3.6 1.3 -3.5" rotation="0 25 0">
+          <a-box class="clickable portal-btn" data-scenario="coffee" width="1.6" height="1.8" depth="0.15" color="#1e293b" material="roughness: 0.3; metalness: 0.5;">
+            <a-text value="☕ Coffee Shop" align="center" color="#38bdf8" position="0 0.5 0.1" width="3.6"></a-text>
+            <a-text value="Casual ordering &\nsmall talk with Maya" align="center" color="#cbd5e1" position="0 0.05 0.1" width="2.4"></a-text>
+            <a-plane position="0 -0.5 0.1" width="1.2" height="0.32" color="#0284c7">
+              <a-text value="ENTER SCENARIO" align="center" color="#fff" width="2.2" position="0 0 0.02"></a-text>
+            </a-plane>
+          </a-box>
+        </a-entity>
+
+        <a-entity position="-1.2 1.3 -4.2" rotation="0 10 0">
+          <a-box class="clickable portal-btn" data-scenario="classroom" width="1.6" height="1.8" depth="0.15" color="#1e293b" material="roughness: 0.3; metalness: 0.5;">
+            <a-text value="🎓 Classroom" align="center" color="#38bdf8" position="0 0.5 0.1" width="3.6"></a-text>
+            <a-text value="Speaking in class &\nanswering instructor" align="center" color="#cbd5e1" position="0 0.05 0.1" width="2.4"></a-text>
+            <a-plane position="0 -0.5 0.1" width="1.2" height="0.32" color="#0284c7">
+              <a-text value="ENTER SCENARIO" align="center" color="#fff" width="2.2" position="0 0 0.02"></a-text>
+            </a-plane>
+          </a-box>
+        </a-entity>
+
+        <a-entity position="1.2 1.3 -4.2" rotation="0 -10 0">
+          <a-box class="clickable portal-btn" data-scenario="interview" width="1.6" height="1.8" depth="0.15" color="#1e293b" material="roughness: 0.3; metalness: 0.5;">
+            <a-text value="💼 Job Interview" align="center" color="#38bdf8" position="0 0.5 0.1" width="3.6"></a-text>
+            <a-text value="Professional 1-on-1\ncareer interview" align="center" color="#cbd5e1" position="0 0.05 0.1" width="2.4"></a-text>
+            <a-plane position="0 -0.5 0.1" width="1.2" height="0.32" color="#0284c7">
+              <a-text value="ENTER SCENARIO" align="center" color="#fff" width="2.2" position="0 0 0.02"></a-text>
+            </a-plane>
+          </a-box>
+        </a-entity>
+
+        <a-entity position="3.6 1.3 -3.5" rotation="0 -25 0">
+          <a-box class="clickable portal-btn" data-scenario="public_speaking" width="1.6" height="1.8" depth="0.15" color="#1e293b" material="roughness: 0.3; metalness: 0.5;">
+            <a-text value="🎤 Auditorium" align="center" color="#38bdf8" position="0 0.5 0.1" width="3.6"></a-text>
+            <a-text value="Stage speech before\na live audience" align="center" color="#cbd5e1" position="0 0.05 0.1" width="2.4"></a-text>
+            <a-plane position="0 -0.5 0.1" width="1.2" height="0.32" color="#0284c7">
+              <a-text value="ENTER SCENARIO" align="center" color="#fff" width="2.2" position="0 0 0.02"></a-text>
+            </a-plane>
+          </a-box>
+        </a-entity>
+      </a-entity>
+
+      <!-- 2. COFFEE SHOP SCENARIO -->
+      <a-entity id="env-coffee" class="env-group" visible="false">
+        <a-plane position="0 0 -4" rotation="-90 0 0" width="18" height="18" color="#3f2e21"></a-plane>
+        <a-plane position="0 2.5 -10" width="18" height="6" color="#f8fafc"></a-plane>
+        <a-box position="0 0.85 -2.4" width="3.8" height="1.0" depth="0.9" color="#2c1d11"></a-box>
+        <a-box position="0 1.38 -2.4" width="3.9" height="0.06" depth="1.0" color="#f1f5f9"></a-box>
+        <a-box position="1.1 1.65 -2.4" width="0.8" height="0.5" depth="0.5" color="#475569"></a-box>
+        <a-cylinder position="1.1 1.7 -2.1" radius="0.08" height="0.2" color="#94a3b8"></a-cylinder>
+        <a-cylinder position="-0.7 1.5 -2.2" radius="0.08" height="0.18" color="#f8fafc"></a-cylinder>
+        <a-cylinder position="-0.4 1.5 -2.2" radius="0.08" height="0.18" color="#38bdf8"></a-cylinder>
+
+        <a-entity id="char-maya" position="0 0 -3.4">
+          <a-cylinder position="0 1.25 0" radius="0.32" height="1.0" color="#059669"></a-cylinder>
+          <a-plane position="0 1.25 0.33" width="0.45" height="0.75" color="#1e293b"></a-plane>
+          <a-sphere position="0 1.95 0" radius="0.24" color="#fed7aa"></a-sphere>
+          <a-sphere position="0 2.08 -0.04" radius="0.26" color="#374151"></a-sphere>
+          <a-plane position="0 2.35 0" width="1.2" height="0.3" color="#0f172a">
+            <a-text value="Maya (Barista)" align="center" color="#34d399" width="3.2" position="0 0 0.02"></a-text>
+          </a-plane>
+        </a-entity>
+      </a-entity>
+
+      <!-- 3. CLASSROOM SCENARIO -->
+      <a-entity id="env-classroom" class="env-group" visible="false">
+        <a-plane position="0 0 -4" rotation="-90 0 0" width="20" height="20" color="#475569"></a-plane>
+        <a-plane position="0 2.5 -6.5" width="7" height="3" color="#064e3b">
+          <a-text value="Introduction to Communications\nTopic: Active Engagement" align="center" color="#ecfdf5" width="6" position="0 0.4 0.05"></a-text>
+        </a-plane>
+        <a-box position="0 0.85 -4.8" width="3" height="0.9" depth="0.8" color="#78350f"></a-box>
+        <a-entity id="char-professor" position="0 0 -5.6">
+          <a-cylinder position="0 1.25 0" radius="0.32" height="1.0" color="#1e3a8a"></a-cylinder>
+          <a-sphere position="0 1.95 0" radius="0.24" color="#fed7aa"></a-sphere>
+          <a-cylinder position="0 2.05 -0.02" radius="0.26" height="0.15" color="#94a3b8"></a-cylinder>
+          <a-plane position="0 2.35 0" width="1.6" height="0.3" color="#0f172a">
+            <a-text value="Prof. Davies" align="center" color="#60a5fa" width="3.2" position="0 0 0.02"></a-text>
+          </a-plane>
+        </a-entity>
+      </a-entity>
+
+      <!-- 4. JOB INTERVIEW SCENARIO -->
+      <a-entity id="env-interview" class="env-group" visible="false">
+        <a-plane position="0 0 -3" rotation="-90 0 0" width="16" height="16" color="#334155"></a-plane>
+        <a-plane position="0 2.5 -5" width="16" height="6" color="#0f172a"></a-plane>
+        <a-box position="0 0.82 -2.1" width="2.4" height="0.08" depth="1.2" color="#38bdf8" opacity="0.8"></a-box>
+        <a-cylinder position="-0.9 0.4 -2.1" radius="0.05" height="0.8" color="#94a3b8"></a-cylinder>
+        <a-cylinder position="0.9 0.4 -2.1" radius="0.05" height="0.8" color="#94a3b8"></a-cylinder>
+        <a-entity id="char-interviewer" position="0 0 -2.9">
+          <a-cylinder position="0 1.1 0" radius="0.3" height="0.9" color="#1e293b"></a-cylinder>
+          <a-sphere position="0 1.8 0" radius="0.23" color="#fcd34d"></a-sphere>
+          <a-plane position="0 2.2 0" width="1.6" height="0.3" color="#0f172a">
+            <a-text value="Sarah (Hiring Manager)" align="center" color="#38bdf8" width="3" position="0 0 0.02"></a-text>
+          </a-plane>
+        </a-entity>
+      </a-entity>
+
+      <!-- 5. AUDITORIUM SCENARIO -->
+      <a-entity id="env-public_speaking" class="env-group" visible="false">
+        <a-box position="0 0.4 -0.5" width="7" height="0.8" depth="4" color="#1e293b"></a-box>
+        <a-box position="0 1.15 -1.5" width="0.9" height="1.1" depth="0.6" color="#475569"></a-box>
+        <a-cylinder position="0 1.72 -1.5" radius="0.02" height="0.15" color="#cbd5e1"></a-cylinder>
+        <a-sphere position="0 1.8 -1.5" radius="0.03" color="#38bdf8"></a-sphere>
+        <a-plane position="0 -0.2 -9" rotation="-90 0 0" width="24" height="20" color="#0b0f19"></a-plane>
+        <a-entity id="audience-group" position="0 0.2 -5.5">
+          <a-sphere position="-2.5 0.7 0" radius="0.25" color="#e2e8f0"></a-sphere>
+          <a-sphere position="-1.2 0.7 0" radius="0.25" color="#cbd5e1"></a-sphere>
+          <a-sphere position="0 0.7 0" radius="0.25" color="#fca5a5"></a-sphere>
+          <a-sphere position="1.2 0.7 0" radius="0.25" color="#fed7aa"></a-sphere>
+          <a-sphere position="2.5 0.7 0" radius="0.25" color="#cbd5e1"></a-sphere>
+        </a-entity>
+      </a-entity>
+    </a-scene>
+  </div>
+
+  <!-- 2D RESPONSIVE HUD & OVERLAY -->
+  <div id="ui-layer">
+    <header id="top-bar">
+      <div class="brand interactive">
+        <div class="brand-logo">C</div>
+        <div>
+          <div class="brand-title">ConfidenceVR</div>
+          <div style="font-size: 11px; color: var(--text-muted);">Practice • Progress • Connect</div>
+        </div>
+        <span class="brand-badge" id="mode-indicator">Desktop Simulator</span>
+      </div>
+
+      <div class="top-stats interactive">
+        <div class="stat-pill">
+          <span>🎯 Level:</span>
+          <strong id="header-level" style="color: var(--primary);">Beginner</strong>
+        </div>
+        <div class="stat-pill">
+          <span>⚡ XP:</span>
+          <strong id="header-xp" style="color: var(--accent);">150</strong>
+        </div>
+        <div class="stat-pill">
+          <span>🔥 Streak:</span>
+          <strong id="header-streak" style="color: var(--accent-warm);">1 Day</strong>
+        </div>
+        <button class="btn btn-sm" id="btn-open-progress">📊 Progress</button>
+        <button class="btn btn-sm" id="btn-open-multiplayer">👥 Multiplayer</button>
+        <button class="btn btn-sm" id="btn-open-safety" style="border-color: rgba(248, 113, 113, 0.4); color: var(--danger);">🛡️ Safety</button>
+      </div>
+    </header>
+
+    <div id="toast-notification">
+      <span id="toast-icon">✨</span>
+      <span id="toast-msg">Achievement Unlocked!</span>
+    </div>
+
+    <footer id="hud-bottom">
+      <div id="conversation-container" class="interactive">
+        <div class="glass-panel dialogue-box">
+          <div class="dialogue-speaker">
+            <span id="speaker-avatar">🤖</span>
+            <span id="speaker-name">Maya (AI Barista)</span>
+            <span id="ai-status-indicator" style="margin-left: auto; font-size: 11px; color: var(--accent); display: none;">● AI Speaking</span>
+          </div>
+          <div class="dialogue-text" id="dialogue-text">
+            "Welcome! Take your time. What can I get started for you today?"
+          </div>
+        </div>
+
+        <div class="quick-replies" id="quick-replies"></div>
+
+        <div class="glass-panel" style="padding: 10px 16px; display: flex; align-items: center; gap: 12px;">
+          <button id="btn-mic" class="mic-button" title="Toggle Voice Recognition (M)">🎙️</button>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+            <input type="text" id="text-input" class="input-field" placeholder="Type your response or press mic to speak (Enter to send)..." autocomplete="off">
+            <div id="speech-status" style="font-size: 11px; color: var(--text-muted);">
+              Press microphone or click any suggested reply to respond
+            </div>
+          </div>
+          <button id="btn-send-text" class="btn btn-primary">Send</button>
+          <button id="btn-exit-scenario" class="btn btn-danger btn-sm">Exit</button>
+        </div>
+      </div>
+    </footer>
+
+    <div id="desktop-guide">
+      <strong>Desktop Simulator Controls:</strong><br>
+      <span class="key-badge">W</span> <span class="key-badge">A</span> <span class="key-badge">S</span> <span class="key-badge">D</span> Move &nbsp;|&nbsp; 
+      <span class="key-badge">Mouse</span> Look & Click &nbsp;|&nbsp; 
+      <span class="key-badge">M</span> Mic &nbsp;|&nbsp; 
+      <span class="key-badge">ESC</span> Hub &nbsp;|&nbsp; 
+      <span class="key-badge">Quest 3S</span> Pointer + Trigger
+    </div>
+  </div>
+
+  <!-- ONBOARDING MODALS -->
+  <div id="modal-welcome" class="modal-overlay interactive">
+    <div class="glass-panel modal-content" style="text-align: center;">
+      <div style="font-size: 42px;">🌱</div>
+      <h1 style="font-size: 32px; font-weight: 800;">ConfidenceVR</h1>
+      <p style="color: var(--primary); font-size: 18px;">Practice. Progress. Connect.</p>
+      <p style="color: var(--text-muted); font-size: 14px; line-height: 1.6; max-width: 500px; margin: 0 auto;">
+        Welcome to your safe, non-judgmental virtual space designed to help you gradually practice social scenarios, public speaking, and real-life conversations at your own pace.
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 14px; max-width: 320px; width: 100%; margin: 14px auto 0;">
+        <button class="btn btn-primary" id="btn-welcome-start">Start Training Journey</button>
+        <button class="btn" id="btn-welcome-guest">Continue as Guest</button>
+      </div>
+      <div style="font-size: 11px; color: var(--text-muted); margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
+        💡 <strong>Product Safety Note:</strong> ConfidenceVR is a wellness training simulator and is not intended to replace medical or clinical psychological care.
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-profile" class="modal-overlay interactive" style="display: none;">
+    <div class="glass-panel modal-content">
+      <div class="onboarding-steps">
+        <div class="step-dot active"></div>
+        <div class="step-dot active"></div>
+        <div class="step-dot"></div>
+      </div>
+      <h2>Personalize Your Profile</h2>
+      <div>
+        <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Your Name or Nickname</label>
+        <input type="text" id="input-profile-name" class="input-field" placeholder="e.g., Alex" value="Alex" style="margin-top: 6px;">
+      </div>
+      <div>
+        <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Age Group</label>
+        <div class="option-grid" id="grid-age">
+          <div class="option-card selected" data-value="18-24">18 – 24</div>
+          <div class="option-card" data-value="25-34">25 – 34</div>
+          <div class="option-card" data-value="35-49">35 – 49</div>
+          <div class="option-card" data-value="50+">50+</div>
+        </div>
+      </div>
+      <div>
+        <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Preferred Virtual Avatar</label>
+        <div class="option-grid" id="grid-avatar">
+          <div class="option-card selected" data-value="Explorer">🧭 Explorer</div>
+          <div class="option-card" data-value="Professional">💼 Professional</div>
+          <div class="option-card" data-value="Casual">☕ Casual</div>
+          <div class="option-card" data-value="Minimal">✨ Minimal</div>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+        <button class="btn btn-primary" id="btn-profile-next">Next: Assessment →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-assessment" class="modal-overlay interactive" style="display: none;">
+    <div class="glass-panel modal-content">
+      <div class="onboarding-steps">
+        <div class="step-dot active"></div>
+        <div class="step-dot active"></div>
+        <div class="step-dot active"></div>
+      </div>
+      <h2>Comfort & Goals Assessment</h2>
+      <div>
+        <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Current Comfort Level</label>
+        <div class="option-grid" id="grid-difficulty">
+          <div class="option-card selected" data-value="Beginner">
+            <strong>Beginner</strong><br>
+            <span style="font-size: 12px; color: var(--text-muted);">High anxiety, prefer slow & gentle prompts</span>
+          </div>
+          <div class="option-card" data-value="Intermediate">
+            <strong>Intermediate</strong><br>
+            <span style="font-size: 12px; color: var(--text-muted);">Manageable, wanting natural fluency</span>
+          </div>
+          <div class="option-card" data-value="Advanced">
+            <strong>Advanced</strong><br>
+            <span style="font-size: 12px; color: var(--text-muted);">Challenging interviews & public stages</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Primary Scenarios to Master</label>
+        <div class="option-grid" id="grid-goals">
+          <div class="option-card selected" data-goal="coffee">☕ Casual Chat</div>
+          <div class="option-card selected" data-goal="classroom">🎓 Classroom Questions</div>
+          <div class="option-card selected" data-goal="interview">💼 Job Interviews</div>
+          <div class="option-card selected" data-goal="public">🎤 Public Speaking</div>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+        <button class="btn" id="btn-assessment-back">← Back</button>
+        <button class="btn btn-primary" id="btn-assessment-finish">Enter Confidence Hub 🚀</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI COACH FEEDBACK MODAL -->
+  <div id="modal-feedback" class="modal-overlay interactive" style="display: none;">
+    <div class="glass-panel modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="display: flex; align-items: center; gap: 8px;"><span>🤖</span> AI Coach Session Analysis</h2>
+        <span class="brand-badge" id="coach-scenario-name">Coffee Shop</span>
+      </div>
+      <div class="glass-panel" style="padding: 20px; text-align: center; background: rgba(56, 189, 248, 0.08); border-color: rgba(56, 189, 248, 0.3);">
+        <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">Practice Confidence Score</div>
+        <div id="coach-score-display" style="font-size: 54px; font-weight: 900; color: var(--primary); margin: 6px 0;">78<span style="font-size: 24px; color: var(--text-muted);">/100</span></div>
+        <p style="font-size: 13px; color: var(--text-muted);">Great progress! Regular practice builds real-world conversational comfort.</p>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center;">
+        <div class="glass-panel" style="padding: 12px;">
+          <div style="font-size: 11px; color: var(--text-muted);">Duration</div>
+          <strong id="metric-duration" style="font-size: 16px;">1m 45s</strong>
+        </div>
+        <div class="glass-panel" style="padding: 12px;">
+          <div style="font-size: 11px; color: var(--text-muted);">Responses</div>
+          <strong id="metric-turns" style="font-size: 16px;">4 turns</strong>
+        </div>
+        <div class="glass-panel" style="padding: 12px;">
+          <div style="font-size: 11px; color: var(--text-muted);">XP Earned</div>
+          <strong id="metric-xp" style="font-size: 16px; color: var(--accent);">+78 XP</strong>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="glass-panel" style="padding: 16px;">
+          <h4 style="color: var(--accent); margin-bottom: 8px;">🌟 Key Strengths</h4>
+          <ul id="coach-strengths" style="font-size: 13px; line-height: 1.6; padding-left: 18px;">
+            <li>Initiated response without excessive hesitation.</li>
+            <li>Maintained conversational context well.</li>
+            <li>Completed all scenario milestones.</li>
+          </ul>
+        </div>
+        <div class="glass-panel" style="padding: 16px;">
+          <h4 style="color: var(--accent-warm); margin-bottom: 8px;">🎯 Focus For Next Time</h4>
+          <ul id="coach-areas" style="font-size: 13px; line-height: 1.6; padding-left: 18px;">
+            <li>Practice expanding with open-ended replies.</li>
+            <li>Try using voice input to build vocal confidence.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="glass-panel" style="padding: 14px; display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">RECOMMENDED NEXT STEP:</div>
+          <div id="coach-next-exercise" style="font-size: 14px; font-weight: 700; color: var(--primary);">Classroom Participation — Level 1</div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btn-coach-accept">Continue to Hub</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRESS DASHBOARD -->
+  <div id="modal-progress" class="modal-overlay interactive" style="display: none;">
+    <div class="glass-panel modal-content" style="max-width: 780px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>📊 Your Confidence Progress</h2>
+        <button class="btn btn-sm" id="btn-close-progress">✕ Close</button>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; text-align: center;">
+        <div class="glass-panel" style="padding: 14px;">
+          <div style="font-size: 11px; color: var(--text-muted);">Avg Confidence</div>
+          <div id="dash-avg-score" style="font-size: 24px; font-weight: 800; color: var(--primary);">74%</div>
+        </div>
+        <div class="glass-panel" style="padding: 14px;">
+          <div style="font-size: 11px; color: var(--text-muted);">Completed Sessions</div>
+          <div id="dash-sessions-count" style="font-size: 24px; font-weight: 800;">3</div>
+        </div>
+        <div class="glass-panel" style="padding: 14px;">
+          <div style="font-size: 11px; color: var(--text-muted);">Practice Time</div>
+          <div id="dash-practice-time" style="font-size: 24px; font-weight: 800; color: var(--accent);">8m</div>
+        </div>
+        <div class="glass-panel" style="padding: 14px;">
+          <div style="font-size: 11px; color: var(--text-muted);">Current Streak</div>
+          <div id="dash-streak" style="font-size: 24px; font-weight: 800; color: var(--accent-warm);">1 Day</div>
+        </div>
+      </div>
+      <div class="glass-panel" style="padding: 18px;">
+        <h4 style="margin-bottom: 12px;">Competency Progression</h4>
+        <div style="margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; font-size: 13px;">
+            <span>Casual Small Talk (Coffee Shop)</span><span id="skill-coffee-pct">75%</span>
+          </div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="skill-coffee-bar" style="width: 75%;"></div></div>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; font-size: 13px;">
+            <span>Classroom & Group Inquiries</span><span id="skill-class-pct">50%</span>
+          </div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="skill-class-bar" style="width: 50%;"></div></div>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; font-size: 13px;">
+            <span>Job Interviews & Structured Responses</span><span id="skill-interview-pct">40%</span>
+          </div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="skill-interview-bar" style="width: 40%;"></div></div>
+        </div>
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 13px;">
+            <span>Public Speaking & Stage Presence</span><span id="skill-public-pct">25%</span>
+          </div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="skill-public-bar" style="width: 25%;"></div></div>
+        </div>
+      </div>
+      <div>
+        <h4 style="margin-bottom: 10px;">Achievements & Milestones</h4>
+        <div class="option-grid" id="achievements-container" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));"></div>
+      </div>
+      <div class="glass-panel" style="padding: 16px;">
+        <h4 style="margin-bottom: 10px;">Recent Practice Sessions</h4>
+        <div id="session-history-list" style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MULTIPLAYER LOBBY -->
+  <div id="modal-multiplayer" class="modal-overlay interactive" style="display: none;">
+    <div class="glass-panel modal-content" style="max-width: 680px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="display: flex; align-items: center; gap: 8px;"><span>👥</span> Real-User Peer Training Rooms</h2>
+        <button class="btn btn-sm" id="btn-close-multiplayer">✕ Close</button>
+      </div>
+      <p style="font-size: 13px; color: var(--text-muted);">Practice with peers in safe, moderated virtual rooms.</p>
+      <div>
+        <h4 style="margin-bottom: 8px;">Active Training Lounges</h4>
+        <div style="display: flex; flex-direction: column; gap: 8px;" id="multiplayer-rooms-list">
+          <div class="glass-panel" style="padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <div style="font-weight: 700; font-size: 14px;">☕ Calm Coffee Lounge</div>
+              <div style="font-size: 12px; color: var(--text-muted);">Topic: Casual small talk & daily routines • 3/6 Users</div>
+            </div>
+            <button class="btn btn-primary btn-sm btn-join-room" data-room="Calm Coffee Lounge">Join Room</button>
+          </div>
+          <div class="glass-panel" style="padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <div style="font-weight: 700; font-size: 14px;">💼 Interview Peer Practice</div>
+              <div style="font-size: 12px; color: var(--text-muted);">Topic: Mock interview questions • 2/4 Users</div>
+            </div>
+            <button class="btn btn-primary btn-sm btn-join-room" data-room="Interview Peer Practice">Join Room</button>
+          </div>
+        </div>
+      </div>
+      <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; display: flex; gap: 10px;">
+        <input type="text" id="input-private-code" class="input-field" placeholder="Enter private invite code or room name..." style="flex: 1;">
+        <button class="btn" id="btn-create-room">Create Private Room</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAFETY & GROUNDING MODAL -->
+  <div id="modal-safety" class="modal-overlay interactive" style="display: none;">
+    <div class="glass-panel modal-content" style="max-width: 600px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="display: flex; align-items: center; gap: 8px; color: var(--danger);"><span>🛡️</span> Safety & Comfort System</h2>
+        <button class="btn btn-sm" id="btn-close-safety">✕ Close</button>
+      </div>
+      <div class="glass-panel" style="padding: 18px; text-align: center; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.06);">
+        <h3 style="color: var(--primary); margin-bottom: 6px;">Feeling Overwhelmed?</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">Pause the scenario and take a guided 4-7-8 breathing exercise to reset your nervous system.</p>
+        <button class="btn btn-primary" id="btn-trigger-breathing">🌬️ Start Grounding Breath Exercise</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button class="btn btn-danger" id="btn-emergency-exit" style="width: 100%;">🚪 Instant Emergency Exit to Confidence Hub</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="breathing-overlay" class="interactive">
+    <div class="breath-circle" id="breath-text">Inhale</div>
+    <div style="text-align: center; max-width: 400px;">
+      <h3 style="color: var(--primary); margin-bottom: 8px;">Calm Grounding Exercise</h3>
+      <p style="font-size: 14px; color: var(--text-muted);">Breathe in as the circle expands, hold gently, and exhale as it relaxes.</p>
+    </div>
+    <button class="btn btn-sm" id="btn-finish-breathing" style="margin-top: 20px;">Return to Practice</button>
+  </div>
+
+  <!-- SCRIPT LOGIC -->
+  <script>
+    const DataManager = {
+      KEYS: { USER: 'cvr_user_profile', PROGRESS: 'cvr_user_progress', SESSIONS: 'cvr_session_history', ACHIEVEMENTS: 'cvr_achievements' },
+      init() {
+        if (!localStorage.getItem(this.KEYS.USER)) {
+          this.save(this.KEYS.USER, { id: 'usr_' + Math.random().toString(36).substr(2, 9), name: 'Alex', ageRange: '18-24', avatar: 'Explorer', comfortLevel: 'Beginner', goals: ['coffee', 'classroom', 'interview', 'public'] });
+        }
+        if (!localStorage.getItem(this.KEYS.PROGRESS)) {
+          this.save(this.KEYS.PROGRESS, { xp: 150, level: 1, streakDays: 1, totalPracticeSeconds: 320, completedScenariosCount: 2, confidenceScore: 72, skills: { coffee: 75, classroom: 50, interview: 40, public: 25 } });
+        }
+        if (!localStorage.getItem(this.KEYS.ACHIEVEMENTS)) {
+          this.save(this.KEYS.ACHIEVEMENTS, [
+            { id: 'first_conv', name: '🏆 First Conversation', desc: 'Completed your first AI conversation.', unlocked: true },
+            { id: 'first_speech', name: '🎤 Public Speaking Pioneer', desc: 'Stood on the auditorium stage.', unlocked: false },
+            { id: 'coffee_master', name: '☕ Coffee Connoisseur', desc: 'Completed the coffee shop interaction.', unlocked: true },
+            { id: 'interview_pro', name: '💼 Job Candidate', desc: 'Practiced a formal interview session.', unlocked: false },
+            { id: 'streak_7', name: '🔥 7-Day Consistency', desc: 'Maintained a 7-day practice streak.', unlocked: false },
+            { id: 'calm_master', name: '🌬️ Zen Master', desc: 'Used the calming breath grounding tool.', unlocked: false }
+          ]);
+        }
+      },
+      get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch(e) { return null; } },
+      save(k, d) { localStorage.setItem(k, JSON.stringify(d)); }
+    };
+
+    const ProgressManager = {
+      data: null,
+      init() { this.data = DataManager.get(DataManager.KEYS.PROGRESS); this.updateHUD(); },
+      addXP(amt) {
+        this.data.xp += amt;
+        const newLvl = Math.floor(this.data.xp / 200) + 1;
+        if (newLvl > this.data.level) { this.data.level = newLvl; Toast.show(`🎉 Level Up! You reached Level ${newLvl}!`); }
+        DataManager.save(DataManager.KEYS.PROGRESS, this.data);
+        this.updateHUD();
+      },
+      recordSession(scenarioName, score, durationSeconds) {
+        this.data.totalPracticeSeconds += durationSeconds;
+        this.data.completedScenariosCount += 1;
+        this.data.confidenceScore = Math.round((this.data.confidenceScore * 0.7) + (score * 0.3));
+        if (scenarioName.includes('Coffee')) this.data.skills.coffee = Math.min(100, this.data.skills.coffee + 10);
+        if (scenarioName.includes('Class')) this.data.skills.classroom = Math.min(100, this.data.skills.classroom + 10);
+        if (scenarioName.includes('Interview')) this.data.skills.interview = Math.min(100, this.data.skills.interview + 10);
+        if (scenarioName.includes('Public')) this.data.skills.public = Math.min(100, this.data.skills.public + 10);
+        DataManager.save(DataManager.KEYS.PROGRESS, this.data);
+
+        const sessions = DataManager.get(DataManager.KEYS.SESSIONS) || [];
+        sessions.unshift({ id: 'sess_' + Date.now(), scenario: scenarioName, score, duration: durationSeconds, date: 'Just now' });
+        DataManager.save(DataManager.KEYS.SESSIONS, sessions.slice(0, 10));
+        this.updateHUD();
+      },
+      updateHUD() {
+        const user = DataManager.get(DataManager.KEYS.USER) || { comfortLevel: 'Beginner' };
+        document.getElementById('header-level').textContent = user.comfortLevel + ` (Lvl ${this.data.level})`;
+        document.getElementById('header-xp').textContent = this.data.xp;
+        document.getElementById('header-streak').textContent = `${this.data.streakDays} Day${this.data.streakDays > 1 ? 's' : ''}`;
+      }
+    };
+
+    const AchievementManager = {
+      unlock(id) {
+        const achievements = DataManager.get(DataManager.KEYS.ACHIEVEMENTS) || [];
+        const item = achievements.find(a => a.id === id);
+        if (item && !item.unlocked) {
+          item.unlocked = true;
+          DataManager.save(DataManager.KEYS.ACHIEVEMENTS, achievements);
+          ProgressManager.addXP(50);
+          Toast.show(`🏆 Unlocked: ${item.name}!`);
+        }
+      },
+      renderList() {
+        const container = document.getElementById('achievements-container');
+        if (!container) return;
+        const achievements = DataManager.get(DataManager.KEYS.ACHIEVEMENTS) || [];
+        container.innerHTML = achievements.map(a => `
+          <div class="option-card ${a.unlocked ? 'selected' : ''}" style="opacity: ${a.unlocked ? '1' : '0.55'};">
+            <strong>${a.name}</strong>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">${a.desc}</div>
+            <div style="font-size: 10px; color: ${a.unlocked ? 'var(--accent)' : 'var(--text-muted)'}; margin-top: 6px; font-weight: 700;">
+              ${a.unlocked ? '✓ UNLOCKED' : '🔒 LOCKED'}
+            </div>
+          </div>
+        `).join('');
+      }
+    };
+
+    const VoiceManager = {
+      recognition: null,
+      synth: window.speechSynthesis,
+      isListening: false,
+      isSupported: false,
+      init() {
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRec) {
+          this.recognition = new SpeechRec();
+          this.recognition.continuous = false;
+          this.recognition.interimResults = false;
+          this.recognition.lang = 'en-US';
+          this.recognition.onstart = () => {
+            this.isListening = true;
+            document.getElementById('btn-mic').classList.add('recording');
+            document.getElementById('speech-status').textContent = 'Listening to your voice... Speak clearly.';
+          };
+          this.recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            document.getElementById('text-input').value = transcript;
+            ConversationManager.handleUserSpeech(transcript);
+          };
+          this.recognition.onerror = () => { this.stopListening(); };
+          this.recognition.onend = () => { this.stopListening(); };
+          this.isSupported = true;
+        }
+      },
+      toggle() {
+        if (!this.isSupported) { Toast.show('Speech recognition not supported in this browser. Please type or click replies.'); return; }
+        if (this.isListening) { this.stopListening(); } else { try { this.recognition.start(); } catch(e){} }
+      },
+      stopListening() {
+        this.isListening = false;
+        const mic = document.getElementById('btn-mic');
+        if (mic) mic.classList.remove('recording');
+      },
+      speak(text, onComplete) {
+        if (!this.synth) { if (onComplete) onComplete(); return; }
+        this.synth.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.95;
+        const aiStatus = document.getElementById('ai-status-indicator');
+        if (aiStatus) aiStatus.style.display = 'inline-block';
+        utterance.onend = () => { if (aiStatus) aiStatus.style.display = 'none'; if (onComplete) onComplete(); };
+        utterance.onerror = () => { if (aiStatus) aiStatus.style.display = 'none'; if (onComplete) onComplete(); };
+        this.synth.speak(utterance);
+      }
+    };
+
+    const ConversationManager = {
+      currentScenario: null,
+      currentStepIndex: 0,
+      sessionStartTime: 0,
+      userResponseCount: 0,
+      totalResponseLatency: 0,
+      lastPromptTime: 0,
+      SCENARIOS: {
+        coffee: {
+          id: 'coffee', title: 'Coffee Shop Ordering & Small Talk', speakerName: 'Maya (Barista)', avatar: '☕',
+          steps: [
+            { speaker: 'Maya', text: 'Good morning! Welcome to the Daily Grind. What can I get started for you today?', replies: ['Hi Maya! Can I please get an iced oat latte?', 'Good morning! What coffee roast do you recommend today?', 'Hello! Just a black drip coffee, please.'] },
+            { speaker: 'Maya', text: 'Great choice! Would you like that with any syrup or a pastry to go with it?', replies: ['A warm blueberry muffin would be wonderful, thanks!', 'No pastries today, just the drink is great.', 'Do you have any dairy-free options for treats?'] },
+            { speaker: 'Maya', text: 'You got it. It has been a busy morning! Are you heading into work or enjoying a day off?', replies: ['Heading into work shortly, so this caffeine will definitely help!', 'Taking the morning off to relax and practice communication.'] },
+            { speaker: 'Maya', text: 'That sounds nice! Here is your fresh order. Have a fantastic rest of your day!', replies: ['Thank you so much Maya, have a great day too!', 'Thanks a lot, really appreciate your warmth!'] }
+          ]
+        },
+        classroom: {
+          id: 'classroom', title: 'Classroom Participation', speakerName: 'Prof. Davies', avatar: '🎓',
+          steps: [
+            { speaker: 'Prof. Davies', text: 'Welcome everyone. Today we are discussing active listening in team settings. Who would like to share what active listening means to them?', replies: ['I think active listening is about understanding intent, not just waiting for your turn to speak.', 'To me, it means giving someone full attention and asking clarifying questions.'] },
+            { speaker: 'Prof. Davies', text: 'Excellent observation. How might someone show genuine active engagement when someone shares a difficult opinion?', replies: ['By paraphrasing what they said before responding.', 'By keeping open body posture and avoiding interrupting them.'] },
+            { speaker: 'Prof. Davies', text: 'Spot on! Thoughtful contribution. That sets a great tone for the seminar today.', replies: ['Thank you Professor, glad to contribute.', 'Thanks, I am practicing speaking up in discussions.'] }
+          ]
+        },
+        interview: {
+          id: 'interview', title: 'Job Interview Simulation', speakerName: 'Sarah (Hiring Manager)', avatar: '💼',
+          steps: [
+            { speaker: 'Sarah', text: 'Hello! Thank you for taking the time to meet with us today. To start off, could you tell me a little bit about yourself and your background?', replies: ['Certainly! I have experience working with teams and solving problems collaboratively.', 'Thank you for having me. I am passionate about learning and clear communication.'] },
+            { speaker: 'Sarah', text: 'Can you tell me about a time you encountered an unexpected challenge and how you navigated it?', replies: ['When deadlines shifted, I communicated proactively with my teammates to reprioritize.', 'I stayed calm, organized a brief sync, and we found an alternative solution together.'] },
+            { speaker: 'Sarah', text: 'That shows great resilience. Before we wrap up, do you have any questions for me about the team culture or role?', replies: ['How does the team support professional growth and regular feedback?', 'What does a typical day look like for someone excelling in this role?'] },
+            { speaker: 'Sarah', text: 'Wonderful questions. It was truly a pleasure speaking with you today!', replies: ['Thank you so much Sarah for the opportunity. I look forward to hearing from you!'] }
+          ]
+        },
+        public_speaking: {
+          id: 'public_speaking', title: 'Auditorium Speech', speakerName: 'Audience Moderator', avatar: '🎤',
+          steps: [
+            { speaker: 'Moderator', text: 'The stage is yours! Please take a deep breath and begin your introduction to the audience.', replies: ['Good afternoon everyone, today I want to share a brief thought on building courage.', 'Hello everyone! It is an honor to stand here and speak with all of you today.'] },
+            { speaker: 'Moderator', text: 'The audience is attentive and nodding along. Share your core message.', replies: ['Confidence is not the absence of fear, but the willingness to take action anyway.', 'Every great journey begins with small, repeatable steps outside our comfort zones.'] },
+            { speaker: 'Moderator', text: 'The room erupts into supportive applause! Conclude your remarks with a smile.', replies: ['Thank you all very much for your time and attentive support!'] }
+          ]
+        }
+      },
+      startScenario(k) {
+        const s = this.SCENARIOS[k];
+        if (!s) return;
+        this.currentScenario = s;
+        this.currentStepIndex = 0;
+        this.sessionStartTime = Date.now();
+        this.userResponseCount = 0;
+        this.totalResponseLatency = 0;
+        SceneManager.switchEnvironment(k);
+        document.getElementById('conversation-container').style.display = 'flex';
+        this.presentCurrentStep();
+      },
+      presentCurrentStep() {
+        const step = this.currentScenario.steps[this.currentStepIndex];
+        if (!step) { this.completeSession(); return; }
+        document.getElementById('speaker-avatar').textContent = this.currentScenario.avatar;
+        document.getElementById('speaker-name').textContent = step.speaker;
+        document.getElementById('dialogue-text').textContent = step.text;
+        document.getElementById('text-input').value = '';
+        VoiceManager.speak(step.text);
+        this.lastPromptTime = Date.now();
+
+        const chips = document.getElementById('quick-replies');
+        chips.innerHTML = '';
+        if (step.replies) {
+          step.replies.forEach(r => {
+            const c = document.createElement('div');
+            c.className = 'quick-chip';
+            c.textContent = r;
+            c.onclick = () => this.handleUserSpeech(r);
+            chips.appendChild(c);
+          });
+        }
+      },
+      handleUserSpeech(txt) {
+        if (!txt.trim()) return;
+        const latency = (Date.now() - this.lastPromptTime) / 1000;
+        this.totalResponseLatency += latency;
+        this.userResponseCount++;
+        const chime = document.getElementById('sound-chime');
+        if (chime) { chime.currentTime = 0; chime.play().catch(()=>{}); }
+        document.getElementById('speech-status').textContent = 'Processing your response...';
+        setTimeout(() => {
+          this.currentStepIndex++;
+          this.presentCurrentStep();
+        }, 1200);
+      },
+      completeSession() {
+        const duration = Math.round((Date.now() - this.sessionStartTime) / 1000);
+        document.getElementById('conversation-container').style.display = 'none';
+        FeedbackManager.evaluateSession(this.currentScenario, duration, this.userResponseCount, this.totalResponseLatency);
+        if (this.currentScenario.id === 'coffee') AchievementManager.unlock('coffee_master');
+        if (this.currentScenario.id === 'interview') AchievementManager.unlock('interview_pro');
+        if (this.currentScenario.id === 'public_speaking') AchievementManager.unlock('first_speech');
+        AchievementManager.unlock('first_conv');
+      }
+    };
+
+    const FeedbackManager = {
+      evaluateSession(scenario, durationSec, responseCount, totalLatency) {
+        const avgLatency = responseCount > 0 ? (totalLatency / responseCount) : 4.0;
+        let score = 70;
+        if (avgLatency >= 2.0 && avgLatency <= 8.0) score += 15; else score += 8;
+        score += 10;
+        score = Math.min(95, Math.max(55, score));
+
+        document.getElementById('coach-scenario-name').textContent = scenario.title;
+        document.getElementById('coach-score-display').innerHTML = `${score}<span style="font-size: 24px; color: var(--text-muted);">/100</span>`;
+        const mins = Math.floor(durationSec / 60);
+        const secs = durationSec % 60;
+        document.getElementById('metric-duration').textContent = `${mins}m ${secs}s`;
+        document.getElementById('metric-turns').textContent = `${responseCount} turns`;
+        document.getElementById('metric-xp').textContent = `+${score} XP`;
+
+        ProgressManager.addXP(score);
+        ProgressManager.recordSession(scenario.title, score, durationSec);
+        document.getElementById('modal-feedback').style.display = 'flex';
+      }
+    };
+
+    const SceneManager = {
+      currentEnv: 'hub',
+      switchEnvironment(envKey) {
+        document.querySelectorAll('.env-group').forEach(e => e.setAttribute('visible', 'false'));
+        const target = document.getElementById(`env-${envKey}`);
+        if (target) { target.setAttribute('visible', 'true'); this.currentEnv = envKey; }
+        const rig = document.getElementById('rig');
+        if (envKey === 'hub') rig.setAttribute('position', '0 0 0');
+        else if (envKey === 'public_speaking') rig.setAttribute('position', '0 0.4 0');
+        else rig.setAttribute('position', '0 0 0');
+      }
+    };
+
+    const MultiplayerManager = {
+      joinRoom(r) {
+        Toast.show(`Connected to peer training room: ${r}`);
+        document.getElementById('modal-multiplayer').style.display = 'none';
+        ConversationManager.startScenario('coffee');
+      },
+      createPrivateRoom(c) {
+        if (!c.trim()) { Toast.show('Please enter room name or code'); return; }
+        Toast.show(`Private room "${c}" created.`);
+        document.getElementById('modal-multiplayer').style.display = 'none';
+        ConversationManager.startScenario('interview');
+      }
+    };
+
+    const SafetyManager = {
+      breathInterval: null,
+      startGrounding() {
+        document.getElementById('modal-safety').style.display = 'none';
+        document.getElementById('breathing-overlay').style.display = 'flex';
+        const txt = document.getElementById('breath-text');
+        txt.textContent = 'Inhale';
+        let phase = 0;
+        this.breathInterval = setInterval(() => {
+          phase = (phase + 1) % 3;
+          txt.textContent = phase === 0 ? 'Inhale' : (phase === 1 ? 'Hold' : 'Exhale');
+        }, 3000);
+        AchievementManager.unlock('calm_master');
+      },
+      stopGrounding() {
+        if (this.breathInterval) clearInterval(this.breathInterval);
+        document.getElementById('breathing-overlay').style.display = 'none';
+      },
+      emergencyExit() {
+        VoiceManager.synth.cancel();
+        VoiceManager.stopListening();
+        document.getElementById('conversation-container').style.display = 'none';
+        document.getElementById('modal-safety').style.display = 'none';
+        document.getElementById('modal-feedback').style.display = 'none';
+        SceneManager.switchEnvironment('hub');
+        Toast.show('Safely returned to Confidence Hub.');
+      }
+    };
+
+    const Toast = {
+      timer: null,
+      show(msg, icon = '✨') {
+        const t = document.getElementById('toast-notification');
+        document.getElementById('toast-msg').textContent = msg;
+        document.getElementById('toast-icon').textContent = icon;
+        t.classList.add('show');
+        if (this.timer) clearTimeout(this.timer);
+        this.timer = setTimeout(() => t.classList.remove('show'), 3500);
+      }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      DataManager.init();
+      ProgressManager.init();
+      VoiceManager.init();
+
+      const scene = document.querySelector('a-scene');
+      if (scene) {
+        scene.addEventListener('enter-vr', () => {
+          document.getElementById('mode-indicator').textContent = 'Quest WebXR Mode';
+          document.getElementById('mode-indicator').style.color = 'var(--accent)';
+          Toast.show('Entered WebXR VR Mode');
+        });
+        scene.addEventListener('exit-vr', () => {
+          document.getElementById('mode-indicator').textContent = 'Desktop Simulator';
+          document.getElementById('mode-indicator').style.color = 'var(--primary)';
+        });
+      }
+
+      document.querySelectorAll('.portal-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          ConversationManager.startScenario(btn.getAttribute('data-scenario'));
+        });
+      });
+
+      document.getElementById('btn-open-progress').addEventListener('click', () => {
+        AchievementManager.renderList();
+        const p = DataManager.get(DataManager.KEYS.PROGRESS);
+        document.getElementById('dash-avg-score').textContent = p.confidenceScore + '%';
+        document.getElementById('dash-sessions-count').textContent = p.completedScenariosCount;
+        document.getElementById('dash-practice-time').textContent = Math.round(p.totalPracticeSeconds / 60) + 'm';
+        document.getElementById('dash-streak').textContent = p.streakDays + ' Day';
+
+        document.getElementById('skill-coffee-pct').textContent = p.skills.coffee + '%';
+        document.getElementById('skill-coffee-bar').style.width = p.skills.coffee + '%';
+        document.getElementById('skill-class-pct').textContent = p.skills.classroom + '%';
+        document.getElementById('skill-class-bar').style.width = p.skills.classroom + '%';
+        document.getElementById('skill-interview-pct').textContent = p.skills.interview + '%';
+        document.getElementById('skill-interview-bar').style.width = p.skills.interview + '%';
+        document.getElementById('skill-public-pct').textContent = p.skills.public + '%';
+        document.getElementById('skill-public-bar').style.width = p.skills.public + '%';
+
+        const sessions = DataManager.get(DataManager.KEYS.SESSIONS) || [];
+        const hist = document.getElementById('session-history-list');
+        hist.innerHTML = sessions.map(s => `
+          <div style="display:flex; justify-content:space-between; padding:8px; background:rgba(255,255,255,0.04); border-radius:6px;">
+            <span><strong>${s.scenario}</strong> • ${Math.round(s.duration)}s</span>
+            <span style="color:var(--primary); font-weight:700;">${s.score}/100</span>
+          </div>
+        `).join('');
+
+        document.getElementById('modal-progress').style.display = 'flex';
+      });
+
+      document.getElementById('btn-close-progress').addEventListener('click', () => {
+        document.getElementById('modal-progress').style.display = 'none';
+      });
+
+      document.getElementById('btn-open-multiplayer').addEventListener('click', () => {
+        document.getElementById('modal-multiplayer').style.display = 'flex';
+      });
+      document.getElementById('btn-close-multiplayer').addEventListener('click', () => {
+        document.getElementById('modal-multiplayer').style.display = 'none';
+      });
+      document.querySelectorAll('.btn-join-room').forEach(btn => {
+        btn.addEventListener('click', () => MultiplayerManager.joinRoom(btn.getAttribute('data-room')));
+      });
+      document.getElementById('btn-create-room').addEventListener('click', () => {
+        MultiplayerManager.createPrivateRoom(document.getElementById('input-private-code').value);
+      });
+
+      document.getElementById('btn-open-safety').addEventListener('click', () => {
+        document.getElementById('modal-safety').style.display = 'flex';
+      });
+      document.getElementById('btn-close-safety').addEventListener('click', () => {
+        document.getElementById('modal-safety').style.display = 'none';
+      });
+      document.getElementById('btn-emergency-exit').addEventListener('click', () => SafetyManager.emergencyExit());
+      document.getElementById('btn-exit-scenario').addEventListener('click', () => SafetyManager.emergencyExit());
+      document.getElementById('btn-trigger-breathing').addEventListener('click', () => SafetyManager.startGrounding());
+      document.getElementById('btn-finish-breathing').addEventListener('click', () => SafetyManager.stopGrounding());
+      document.getElementById('btn-coach-accept').addEventListener('click', () => {
+        document.getElementById('modal-feedback').style.display = 'none';
+        SceneManager.switchEnvironment('hub');
+      });
+
+      document.getElementById('btn-welcome-start').addEventListener('click', () => {
+        document.getElementById('modal-welcome').style.display = 'none';
+        document.getElementById('modal-profile').style.display = 'flex';
+      });
+      document.getElementById('btn-welcome-guest').addEventListener('click', () => {
+        document.getElementById('modal-welcome').style.display = 'none';
+        Toast.show('Welcome to Confidence Hub!');
+      });
+      document.getElementById('btn-profile-next').addEventListener('click', () => {
+        const name = document.getElementById('input-profile-name').value || 'Alex';
+        const user = DataManager.get(DataManager.KEYS.USER);
+        user.name = name;
+        DataManager.save(DataManager.KEYS.USER, user);
+        document.getElementById('modal-profile').style.display = 'none';
+        document.getElementById('modal-assessment').style.display = 'flex';
+      });
+      document.getElementById('btn-assessment-back').addEventListener('click', () => {
+        document.getElementById('modal-assessment').style.display = 'none';
+        document.getElementById('modal-profile').style.display = 'flex';
+      });
+      document.getElementById('btn-assessment-finish').addEventListener('click', () => {
+        document.getElementById('modal-assessment').style.display = 'none';
+        ProgressManager.updateHUD();
+        Toast.show('Welcome! Step toward any portal to practice.');
+      });
+
+      document.querySelectorAll('.option-card').forEach(card => {
+        card.addEventListener('click', function() {
+          const parent = this.parentElement;
+          if (parent.id === 'grid-goals') {
+            this.classList.toggle('selected');
+          } else {
+            parent.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+          }
+        });
+      });
+
+      document.getElementById('btn-mic').addEventListener('click', () => VoiceManager.toggle());
+      const textInput = document.getElementById('text-input');
+      const submitText = () => {
+        if (textInput.value.trim()) ConversationManager.handleUserSpeech(textInput.value);
+      };
+      document.getElementById('btn-send-text').addEventListener('click', submitText);
+      textInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitText(); });
+
+      window.addEventListener('keydown', (e) => {
+        if (document.activeElement === textInput) return;
+        if (e.key === 'm' || e.key === 'M') VoiceManager.toggle();
+        else if (e.key === 'Escape') SafetyManager.emergencyExit();
+        else if (e.key === '1') ConversationManager.startScenario('coffee');
+        else if (e.key === '2') ConversationManager.startScenario('classroom');
+        else if (e.key === '3') ConversationManager.startScenario('interview');
+        else if (e.key === '4') ConversationManager.startScenario('public_speaking');
+      });
+    });
+  </script>
+</body>
+</html>
